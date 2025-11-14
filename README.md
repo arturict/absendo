@@ -32,7 +32,7 @@
 
 ## 🌐 Live Demo
 
-Experience Absendo live: [https://absendo.app](https://absendo.app)
+Experience Absendo live: [https://absendo.artur.engineer](https://absendo.artur.engineer)
 
 ## 📦 Project Structure
 

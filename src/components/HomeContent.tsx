@@ -8,18 +8,21 @@ function HomeContent() {
     const [savedTimeHouers, setSavedTimeHouers] = useState(0);
 
     useEffect(() => {
-        const response = fetch("https://api.absendo.app/stats/time-saved");
-        try{
-            response.then(res => res.json()).then(data => {
-                setSavedTimeMinutes(data.timeSaved.minutes);
-                setSavedTimeHouers(data.timeSaved.hours);
-            });
-
-        }catch (err) {
-            console.error('Error fetching user count:', err);
-            setError(true);
-        }
-
+        // TODO: Setup stats API at https://api.absendo.artur.engineer/stats/time-saved
+        // const response = fetch("https://api.absendo.artur.engineer/stats/time-saved");
+        // try{
+        //     response.then(res => res.json()).then(data => {
+        //         setSavedTimeMinutes(data.timeSaved.minutes);
+        //         setSavedTimeHouers(data.timeSaved.hours);
+        //     });
+        // }catch (err) {
+        //     console.error('Error fetching time saved:', err);
+        //     setError(true);
+        // }
+        
+        // Disabled until API is available
+        setSavedTimeMinutes(0);
+        setSavedTimeHouers(0);
     }, []);
     return (
         <>

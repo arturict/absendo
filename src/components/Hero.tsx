@@ -8,11 +8,15 @@ function Hero() {
     useEffect(() => {
         const fetchUserCount = async () => {
             try {
-                const response = await fetch("https://api.absendo.app/stats/user-count");
-                if(response) {
-                    const { userCount } = await response.json();
-                    setUserCount(userCount);
-                }
+                // TODO: Setup stats API at https://api.absendo.artur.engineer/stats/user-count
+                // const response = await fetch("https://api.absendo.artur.engineer/stats/user-count");
+                // if(response) {
+                //     const { userCount } = await response.json();
+                //     setUserCount(userCount);
+                // }
+                
+                // Disabled until API is available
+                setUserCount(undefined);
             } catch (err) {
                 console.error('Error fetching user count:', err);
                 setError(true);

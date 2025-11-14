@@ -19,7 +19,7 @@ function SignupForm() {
         try {
             const { error: signUpError } = await supabase.auth.signUp({ email, password,
                 options: {
-                    emailRedirectTo: 'https://absendo.app/welcome',
+                    emailRedirectTo: 'https://absendo.artur.engineer/welcome',
                 }
             })
             if (signUpError) throw signUpError;
@@ -33,7 +33,7 @@ function SignupForm() {
         await supabase.auth.signInWithOAuth({
             provider: 'github',
             options: {
-                redirectTo: 'https://absendo.app/welcome'
+                redirectTo: 'https://absendo.artur.engineer/welcome'
             }
         });
     }
@@ -42,7 +42,7 @@ function SignupForm() {
         await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: 'https://absendo.app/welcome'
+                redirectTo: 'https://absendo.artur.engineer/welcome'
             }
         })
     }

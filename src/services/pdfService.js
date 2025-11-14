@@ -45,7 +45,9 @@ async function getUserData(user_id) {
 
 async function getICALData(url) {
     try {
-        const response = await fetch(`https://api.absendo.app/proxy?url=${url}`);
+        // Direct fetch attempt first (may fail due to CORS)
+        // TODO: Setup CORS proxy at https://api.absendo.artur.engineer/proxy if needed
+        const response = await fetch(url);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
