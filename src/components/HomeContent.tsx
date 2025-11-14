@@ -2,7 +2,6 @@ import {useEffect, useState} from "react";
 import {useIsUserLoggedIn} from "../supabaseClient.ts";
 
 function HomeContent() {
-    const [error, setError] = useState(false);
     const isUserLoggedIn = useIsUserLoggedIn();
     const [savedTimeMinutes, setSavedTimeMinutes] = useState(0);
     const [savedTimeHouers, setSavedTimeHouers] = useState(0);
@@ -166,21 +165,19 @@ function HomeContent() {
                             Bereit, Zeit zu sparen? 🎉
                         </h2>
                         <div className="text-xl mb-4 max-w-2xl mx-auto">
-                            {!error && (
-                                <p className="text-lg mb-8 max-w-2xl mx-auto">
-                                    Schon {" "}
-                                    <span className="font-bold text">
-                                        {savedTimeHouers}
-                                        {" "}
-                                        {savedTimeHouers < 2 ? "Stunde " : "Stunden "}
-                                        {"und"}{" "}
-                                        {savedTimeMinutes}
-                                        {" "}Minuten
-                                    </span>
+                            <p className="text-lg mb-8 max-w-2xl mx-auto">
+                                Schon {" "}
+                                <span className="font-bold text">
+                                    {savedTimeHouers}
                                     {" "}
-                                    für alle Schüler*innen eingespart – effizient, oder?
-                                </p>
-                            )}
+                                    {savedTimeHouers < 2 ? "Stunde " : "Stunden "}
+                                    {"und"}{" "}
+                                    {savedTimeMinutes}
+                                    {" "}Minuten
+                                </span>
+                                {" "}
+                                für alle Schüler*innen eingespart – effizient, oder?
+                            </p>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
                             <button
