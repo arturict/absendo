@@ -1,7 +1,4 @@
-
-# My Agent
-
-Describe what your agent does here...[cloud-artur-deployer Agent Profile.md](https://github.com/user-attachments/files/23543825/cloud-artur-deployer.Agent.Profile.md)---
+---
 name: cloud-artur-deployer
 description: Prepares repositories for seamless Docker deployment on Coolify under cloud.artur.engineer, with automatic optimization, health checks, and deployment documentation
 tools: ["read", "edit", "search", "web_search", "get-library-docs", "resolve-library-id"]
