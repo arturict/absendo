@@ -36,8 +36,7 @@ To get a local copy of Absendo up and running, follow these steps:
 
 ### Prerequisites
 
-*   Node.js (LTS version recommended)
-*   npm (comes with Node.js)
+*   [Bun](https://bun.sh) (v1.0 or higher recommended)
 
 ### Clone the repository
 
@@ -49,7 +48,7 @@ cd absendo-react
 ### Install Dependencies
 
 ```bash
-npm install
+bun install
 ```
 
 ### Environment Variables
@@ -64,7 +63,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 ### Run the Development Server
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 This will start the development server, usually at `http://localhost:5173`.
