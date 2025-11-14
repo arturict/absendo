@@ -45,9 +45,12 @@ async function getUserData(user_id) {
 
 async function getICALData(url) {
     try {
-        // Direct fetch attempt first (may fail due to CORS)
-        // TODO: Setup CORS proxy at https://api.absendo.artur.engineer/proxy if needed
-        const response = await fetch(url);
+        // Use CORS proxy for schulnetz.lu.ch URLs
+        // Direct fetch will fail due to CORS restrictions
+        const proxyUrl = import.meta.env.VITE_CORS_PROXY_URL || '/api/cors-proxy';
+        const fetchUrl = `${proxyUrl}?url=${encodeURIComponent(url)}`;
+        
+        const response = await fetch(fetchUrl);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -58,7 +61,7 @@ async function getICALData(url) {
         return ical.parseICS(data);
 
     } catch (error) {
-        throw new Error(`Failed to fetch iCal data: ${error.message}`);
+        throw new Error(`Kalender-Daten konnten nicht geladen werden: ${error.message}`);
     }
 }
 
