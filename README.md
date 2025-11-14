@@ -102,6 +102,25 @@ VITE_API_URL=https://api.yourdomain.com
 
 **For Self-Hosted Supabase Setup:** See [DEPLOYMENT.md](./DEPLOYMENT.md)
 
+## 🚀 Deployment
+
+This application is deployed on **Coolify** at `cloud.artur.engineer`.
+
+**📋 For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)**
+
+**Quick Links:**
+
+- **Production:** https://absendo.artur.engineer
+- **Health Check:** https://absendo.artur.engineer/health
+- **Coolify Dashboard:** https://cloud.artur.engineer
+
+**Deployment Features:**
+- ✅ Automatic deployment via GitHub webhook
+- ✅ Docker-based deployment with Nginx
+- ✅ Built-in health checks
+- ✅ SSL/TLS via Let's Encrypt
+- ✅ Resource-optimized multi-stage build
+
 ### Run the Development Server
 
 ```bash

@@ -1,38 +1,45 @@
-# Multi-stage build for Absendo frontend
+# Multi-stage build for Absendo React SPA
 # Stage 1: Build
-FROM node:18-alpine as builder
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json ./
+# Copy package files for dependency caching
+COPY package.json bun.lock ./
 
 # Install dependencies
-RUN npm ci
+RUN bun install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
 # Build the application
-RUN npm run build
+RUN bun run build
 
-# Stage 2: Production
-FROM node:18-alpine as production
+# Stage 2: Production with Nginx
+FROM nginx:alpine
 
-WORKDIR /app
-
-# Install serve to run the static build
-RUN npm install -g serve
+# Copy custom nginx config
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copy built files from builder stage
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Create a simple server script
-RUN echo '#!/bin/sh\nserve -s dist -l 3000' > /entrypoint.sh && chmod +x /entrypoint.sh
+# Create health check endpoint
+RUN echo '{"status":"ok","service":"absendo","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > /usr/share/nginx/html/health.json
 
-EXPOSE 3000
+# Use non-root user
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /var/log/nginx && \
+    touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/run/nginx.pid
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+USER nginx
 
-ENTRYPOINT ["/entrypoint.sh"]
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost/health.json || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

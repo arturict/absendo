@@ -2,13 +2,18 @@ node_modules
 npm-debug.log
 dist
 .git
+.github
 .gitignore
 README.md
 DEPLOYMENT.md
 QUICKSTART.md
+GEMINI.md
+DOCKER.md
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
 .DS_Store
 *.pem
 *.key
@@ -16,3 +21,8 @@ QUICKSTART.md
 .idea
 coverage
 .eslintcache
+*.log
+.cache
+.vercel
+vercel.json
+docker-compose*.yml

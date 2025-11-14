@@ -1,380 +1,360 @@
-# Deployment Guide: Self-Hosted Supabase on Coolify
+# Deployment Guide: Absendo on Coolify
 
-## Executive Summary
+> **Hosting:** cloud.artur.engineer (Coolify)  
+> **Deployment:** Automatic via GitHub webhook on push  
+> **Stack:** React 19 + Vite + TypeScript (Static SPA with Nginx)
 
-| Aspect | Difficulty | Time | Cost |
-|--------|-----------|------|------|
-| **Self-Hosted Supabase Setup** | 🟡 Medium | 30-45 min | Free (your hardware) |
-| **Frontend Deployment** | 🟢 Easy | 15 min | Free (Coolify) |
-| **Infrastructure** | ✅ Ready | ✅ You own it | $0/month |
-| **Scaling** | ✅ Excellent | 5 vCPU, 16GB RAM | 100K+ users |
+## Prerequisites
+
+- Coolify instance accessible at `cloud.artur.engineer`
+- GitHub repository connected to Coolify
+- Supabase instance running (production: `supabase.prod.artur.engineer`)
+- Domain configured: `absendo.artur.engineer`
 
 ---
 
-## 1. Architecture
+## 1. Coolify Resource Configuration
 
-### Deployment Topology
+### Create New Application
 
-```
-┌───────────────────────────────────────────────────┐
-│  PRODUCTION TIER (on your Coolify instance)       │
-├───────────────────────────────────────────────────┤
-│                                                   │
-│  absendo.artur.engineer                           │
-│  (Frontend - React SPA in Docker Nginx)           │
-│              ↓                                    │
-│  supabase.prod.artur.engineer                     │
-│  (Backend - Supabase Docker: API + PostgreSQL)    │
-│                                                   │
-└───────────────────────────────────────────────────┘
+**Navigation:** Project → Environment → Add Resource → Application
 
-Optional: Development Tier
-┌───────────────────────────────────────────────────┐
-│  dev.absendo.artur.engineer (Frontend)            │
-│  supabase.dev.artur.engineer (Backend)            │
-└───────────────────────────────────────────────────┘
+**Basic Settings:**
 
-Local Development (Your Machine)
-┌───────────────────────────────────────────────────┐
-│  localhost:5173 (Frontend - npm run dev)          │
-│  localhost:54321 (Backend - Supabase CLI local)   │
-└───────────────────────────────────────────────────┘
-```
-
-### Architecture Components
-
-**Frontend (Docker)**
-- React 19 + TypeScript + Vite (built)
-- Served by lightweight Node.js server
-- Single Docker image for all environments
-- Environment variables injected at build time
-
-**Backend (Self-Hosted Supabase)**
-- PostgreSQL 15+ database
-- Supabase Auth API
-- Real-time subscriptions
-- REST API endpoints
-- Docker containers on Coolify
-
-**Key Insight:** The Supabase client code doesn't change - same API whether cloud or self-hosted!
+| Setting | Value |
+|---------|-------|
+| **Build Pack** | Dockerfile |
+| **Dockerfile Location** | `./Dockerfile` |
+| **Base Directory** | `/` |
+| **Ports Exposes** | `80` |
+| **Health Check Path** | `/health` |
+| **Health Check Port** | `80` |
+| **Health Check Interval** | `30s` |
+| **Health Check Timeout** | `3s` |
+| **Health Check Retries** | `3` |
 
 ---
 
 ## 2. Environment Variables
 
-### Frontend (.env)
-```env
-# Self-hosted Supabase endpoints
-VITE_SUPABASE_URL=https://db.yourdomain.com
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Copy these environment variables from `.env.example` into Coolify's environment variable settings.
+
+### Required Variables
+
+```bash
+# Supabase Connection (CRITICAL - app won't work without these)
+VITE_SUPABASE_URL=https://supabase.prod.artur.engineer
+VITE_SUPABASE_ANON_KEY=your_production_anon_key_here
 ```
 
-### Where to Get These Values
+**How to get Supabase credentials:**
 
-After deploying Supabase:
+1. Access Supabase dashboard at `https://supabase.prod.artur.engineer`
+2. Navigate to **Settings → API**
+3. Copy:
+   - **Project URL** → `VITE_SUPABASE_URL`
+   - **Anon Public Key** → `VITE_SUPABASE_ANON_KEY`
 
-1. **Access Admin Dashboard:**
-   ```
-   https://db.yourdomain.com:8000
-   ```
+### Optional Variables
 
-2. **Navigate to Settings → API:**
-   ```
-   - Project URL → VITE_SUPABASE_URL
-   - Anon Public Key → VITE_SUPABASE_ANON_KEY
-   - Service Role Key → Keep secure (backend only)
-   ```
-
-3. **Update Your .env:**
-   ```bash
-   # Copy keys from Supabase dashboard
-   VITE_SUPABASE_URL=https://db.yourdomain.com
-   VITE_SUPABASE_ANON_KEY=your_anon_key_here
-   ```
+```bash
+# Build configuration
+NODE_ENV=production
+VITE_BUILD_OUTPUT=dist
+```
 
 ---
 
-## 3. Deploy Self-Hosted Supabase
+## 3. Domain Configuration
 
-### Option A: Using Coolify UI (Recommended)
+### Primary Domain
 
-#### Step 1: Prepare Docker Compose
-Save this as `docker-compose.yml`:
+Set in Coolify application settings:
+
+```
+absendo.artur.engineer
+```
+
+### SSL Certificate
+
+- **Type:** Automatic (Let's Encrypt)
+- **Status:** Enabled by default in Coolify
+- **Renewal:** Automatic
+
+### DNS Configuration (if not already done)
+
+Add an A record in your DNS provider:
+
+| Type | Name | Value | TTL |
+|------|------|-------|-----|
+| A | absendo | [Your Server IP] | 300 |
+
+---
+
+## 4. Webhook Setup (Automatic Deployment)
+
+### GitHub Integration
+
+Coolify automatically configures webhooks when you connect a GitHub repository.
+
+**Deployment Trigger:**
+- Push to `main` branch → Automatic deployment
+- Pull request merge → Automatic deployment
+
+### Manual Deployment
+
+If you need to trigger a deployment manually:
+
+1. Go to Coolify Dashboard
+2. Navigate to **Applications → Absendo**
+3. Click **Deploy** button
+
+---
+
+## 5. Resource Limits (Recommended)
+
+Configure resource limits in Coolify to ensure efficient resource usage:
 
 ```yaml
-version: '3.8'
-
-services:
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  supabase:
-    image: supabase/supabase:latest
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXP: 3600
-      ANON_KEY: ${ANON_KEY}
-      SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
-      API_URL: https://db.${DOMAIN}
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8000:8000"
-      - "5432:5432"
-    volumes:
-      - supabase_data:/var/lib/supabase/storage
-
-volumes:
-  postgres_data:
-  supabase_data:
+Memory Limit: 512M
+Memory Reservation: 256M
+CPU Limit: 0.5 cores
+CPU Reservation: 0.25 cores
 ```
 
-#### Step 2: In Coolify Dashboard
-1. **Services → New Service → Docker Compose**
-2. **Paste the compose file above**
-3. **Set Environment Variables:**
-
-```
-POSTGRES_PASSWORD=<generate-secure-password>
-JWT_SECRET=<generate-32-char-string>
-ANON_KEY=<see-below>
-SERVICE_ROLE_KEY=<see-below>
-DOMAIN=yourdomain.com
-```
-
-**How to generate keys:**
-```bash
-# Generate random strings
-openssl rand -base64 32  # For POSTGRES_PASSWORD
-openssl rand -base64 32  # For JWT_SECRET
-
-# For JWT keys, use sample values or generate proper JWT tokens
-```
-
-#### Step 3: Configure Domain
-1. **In Coolify:** Set domain to `db.yourdomain.com`
-2. **Enable SSL** (automatic with Let's Encrypt)
-3. **Update DNS:** Point `db.yourdomain.com` to your server IP
-
-#### Step 4: Deploy
-1. Click **Deploy**
-2. Wait for containers to start (~2-3 minutes)
-3. Access: `https://db.yourdomain.com:8000`
+**Why these limits:**
+- Static React SPA has minimal resource needs
+- Nginx is extremely lightweight
+- Prevents resource hogging on shared infrastructure
 
 ---
 
-## 4. Initial Supabase Configuration
+## 6. Health Check & Monitoring
 
-### Access Admin Console
-```
-URL: https://db.yourdomain.com:8000
-Email: admin@supabase.io
-Password: Set in environment or default
-```
+### Health Check Endpoint
 
-### Create Database Tables
-Create tables matching your Supabase cloud schema:
-
-```sql
--- Profiles table (for users & encryption)
-CREATE TABLE profiles (
-  id uuid PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  email TEXT,
-  first_name TEXT,
-  last_name TEXT,
-  birthday TEXT,
-  phone_number_trainer TEXT,
-  email_trainer TEXT,
-  first_name_trainer TEXT,
-  last_name_trainer TEXT,
-  calendar_url TEXT,
-  encryption_salt TEXT,
-  pin_hash TEXT,
-  has_pin BOOLEAN DEFAULT false,
-  onboarding_completed BOOLEAN DEFAULT false
-);
-
--- Absences table
-CREATE TABLE absences (
-  id SERIAL PRIMARY KEY,
-  user_id uuid REFERENCES profiles(id) ON DELETE CASCADE,
-  date DATE NOT NULL,
-  reason TEXT,
-  is_excused BOOLEAN DEFAULT false,
-  file_name TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Get API Keys
-1. **Settings → API**
-2. **Copy:**
-   - Project URL
-   - Anon Public Key
-   - Service Role Key
-
----
-
-## 5. Deploy Frontend
-
-### Option A: Deploy to Coolify
-
-1. **Coolify → Applications → New**
-2. **Select GitHub repository** (absendo)
-3. **Build command:** `npm run build`
-4. **Start command:** `npm run preview` or use static hosting
-5. **Environment variables:** Add your `.env` values
-6. **Deploy**
-
-### Option B: Keep on Vercel
-Just update environment variables:
+The application includes a built-in health check endpoint:
 
 ```bash
-# In Vercel dashboard:
-VITE_SUPABASE_URL=https://db.yourdomain.com
-VITE_SUPABASE_ANON_KEY=your_anon_key
+# Health check URL
+https://absendo.artur.engineer/health
+
+# Expected response
+{
+  "status": "ok",
+  "service": "absendo"
+}
 ```
 
-Then redeploy.
+### Monitoring in Coolify
+
+1. **Application Dashboard:** Real-time status indicator
+2. **Logs:** Coolify Dashboard → Applications → Absendo → Logs
+3. **Metrics:** Built-in CPU, Memory, Network usage graphs
+
+### Health Check Configuration
+
+Already configured in Dockerfile:
+- **Interval:** 30s
+- **Timeout:** 3s
+- **Start Period:** 5s
+- **Retries:** 3
 
 ---
 
-## 6. Database Migration (If Migrating from Cloud)
+## 7. Troubleshooting
 
-### Export from Supabase Cloud
+### Build Failures
+
+**Check build logs:**
 ```bash
-# Export all data from cloud Supabase
-pg_dump -h db.supabase.co -U postgres -d postgres > backup.sql
+# In Coolify: Applications → Absendo → Deployment Logs
 ```
 
-### Import to Self-Hosted
+**Common issues:**
+- Missing environment variables → Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+- TypeScript errors → Run `npm run build` locally first
+- Out of memory → Increase memory limit in Coolify
+
+### Health Check Failing
+
+**Symptoms:** Application shows as unhealthy in Coolify
+
+**Solutions:**
+1. Verify `/health` endpoint is accessible:
+   ```bash
+   curl https://absendo.artur.engineer/health
+   ```
+2. Check container logs for errors
+3. Ensure port 80 is exposed in Dockerfile
+4. Verify Nginx is running inside container
+
+### Application Not Accessible
+
+**Check DNS:**
 ```bash
-# Import to your self-hosted instance
-psql -h localhost -U postgres -d postgres < backup.sql
+nslookup absendo.artur.engineer
+# Should resolve to your server IP
 ```
 
-**Note:** Encryption keys and salts in the database should transfer perfectly since they're just strings.
-
----
-
-## 7. Backup Strategy
-
-### Automatic Backups with Coolify
-1. **Services → [Supabase] → Backups**
-2. **Enable automatic backups**
-3. **Schedule:** Daily at 2 AM UTC
-
-### Manual Backup
+**Check SSL:**
 ```bash
-docker exec absendo-postgres-1 pg_dump -U postgres postgres > backup-$(date +%Y%m%d).sql
+curl -I https://absendo.artur.engineer
+# Should return 200 OK
 ```
 
----
-
-## 8. Troubleshooting
-
-### Supabase Not Starting
+**Check container status:**
 ```bash
-# Check logs
-docker logs absendo-supabase-1
-
-# Common fixes:
-# - Ensure POSTGRES_PASSWORD is set
-# - Check disk space (50GB recommended minimum)
-# - Verify JWT_SECRET length (32+ chars)
+docker ps | grep absendo
+# Container should be in "healthy" state
 ```
 
-### Connection Issues
+### Supabase Connection Errors
+
+**Symptoms:** Login/signup not working
+
+**Solutions:**
+1. Verify `VITE_SUPABASE_URL` is correct
+2. Test Supabase endpoint:
+   ```bash
+   curl https://supabase.prod.artur.engineer/rest/v1/
+   ```
+3. Check browser console for CORS errors
+4. Verify Supabase container is running
+
+---
+
+## 8. Testing Deployment
+
+### Local Testing (Before Pushing to GitHub)
+
+Test the Docker build locally:
+
 ```bash
-# Test PostgreSQL connection
-psql -h db.yourdomain.com -U postgres -d postgres
+# 1. Build the Docker image
+docker build -t absendo-test .
 
-# Test Supabase API
-curl https://db.yourdomain.com/rest/v1/
+# 2. Run the container
+docker run -p 8080:80 \
+  -e VITE_SUPABASE_URL=https://supabase.prod.artur.engineer \
+  -e VITE_SUPABASE_ANON_KEY=your_anon_key \
+  absendo-test
+
+# 3. Test health check
+curl http://localhost:8080/health
+
+# 4. Test application
+open http://localhost:8080
 ```
 
-### Slow Performance
-- Monitor CPU/RAM in Coolify
-- Your 5 vCPU, 16GB RAM can handle 100K+ users
-- Consider PostgreSQL tuning if needed
+### Post-Deployment Verification
+
+After deploying to Coolify:
+
+1. **Health Check:**
+   ```bash
+   curl https://absendo.artur.engineer/health
+   # Expected: {"status":"ok","service":"absendo"}
+   ```
+
+2. **Application Load:**
+   ```bash
+   curl -I https://absendo.artur.engineer
+   # Expected: HTTP/2 200
+   ```
+
+3. **Functional Test:**
+   - Open `https://absendo.artur.engineer`
+   - Test login/signup flow
+   - Verify calendar integration
+   - Generate a test PDF
 
 ---
 
-## 9. Maintenance
+## 9. Deployment Checklist
 
-### Regular Tasks
-- **Weekly:** Monitor disk usage
-- **Monthly:** Review Supabase logs
-- **Quarterly:** Update Docker images
-  ```bash
-  docker pull postgres:15-alpine
-  docker pull supabase/supabase:latest
-  ```
+Use this checklist when deploying:
 
-### Updates
-In Coolify:
-1. **Services → [Supabase]**
-2. **Edit → Update Docker images**
-3. **Redeploy**
+- [ ] **Prerequisites**
+  - [ ] Coolify instance accessible
+  - [ ] GitHub repository connected
+  - [ ] Supabase instance running
+  - [ ] Domain DNS configured
 
----
+- [ ] **Coolify Configuration**
+  - [ ] Build Pack set to "Dockerfile"
+  - [ ] Ports Exposes set to "80"
+  - [ ] Health Check Path set to "/health"
+  - [ ] Domain configured: `absendo.artur.engineer`
 
-## 10. Cost Comparison
+- [ ] **Environment Variables**
+  - [ ] `VITE_SUPABASE_URL` set
+  - [ ] `VITE_SUPABASE_ANON_KEY` set
+  - [ ] `NODE_ENV=production` set
 
-| Item | Cloud Supabase | Self-Hosted |
-|------|---|---|
-| Auth | $0 (free tier) | $0 |
-| Database | $25-100/mo | $0 |
-| Storage | $5-10/mo | $0 |
-| Hosting | $0 (SPA) | $0 (your hardware) |
-| **Total** | **$30-110/mo** | **$0/mo** |
+- [ ] **Testing**
+  - [ ] Docker build tested locally
+  - [ ] Health endpoint responding
+  - [ ] Application loads correctly
+  - [ ] Login/signup working
+  - [ ] Calendar integration functional
 
-**Savings:** $30-110 per month by self-hosting on your hardware!
-
----
-
-## 11. Configuration Checklist
-
-- [ ] Generate secure passwords (POSTGRES_PASSWORD)
-- [ ] Generate JWT_SECRET (32+ chars)
-- [ ] Deploy Supabase on Coolify
-- [ ] Configure domain (db.yourdomain.com)
-- [ ] Access admin console at :8000
-- [ ] Retrieve API keys from Settings → API
-- [ ] Update frontend .env with keys
-- [ ] Redeploy frontend
-- [ ] Test login/signup functionality
-- [ ] Set up automated backups
-- [ ] Configure DNS for domain
+- [ ] **Monitoring**
+  - [ ] Health checks enabled
+  - [ ] SSL certificate active
+  - [ ] Logs accessible in Coolify
+  - [ ] Resource limits configured
 
 ---
 
-## Next Steps
+## 10. Quick Reference
 
-1. **Test everything locally first** (optional docker-compose)
-2. **Deploy to Coolify** (30 min)
-3. **Update frontend .env** (5 min)
-4. **Verify encryption** (works identical to cloud)
-5. **Monitor first week** for any issues
-6. **Set up backups** for safety
+### Deployment URLs
 
-Your infrastructure is more than capable - enjoy full data ownership! 🚀
+| Service | URL |
+|---------|-----|
+| **Production App** | https://absendo.artur.engineer |
+| **Health Check** | https://absendo.artur.engineer/health |
+| **Supabase API** | https://supabase.prod.artur.engineer |
+| **Coolify Dashboard** | https://cloud.artur.engineer |
+
+### Key Commands
+
+```bash
+# Test local Docker build
+docker build -t absendo-test .
+
+# Run container locally
+docker run -p 8080:80 --env-file .env absendo-test
+
+# Check health
+curl http://localhost:8080/health
+
+# View Coolify logs (on server)
+docker logs [container-name]
+
+# Manual deployment
+# Use Coolify UI → Deploy button
+```
+
+### Environment Variables Quick Copy
+
+```bash
+# Production
+VITE_SUPABASE_URL=https://supabase.prod.artur.engineer
+VITE_SUPABASE_ANON_KEY=[get-from-supabase-dashboard]
+NODE_ENV=production
+```
+
+### Support Resources
+
+- **Coolify Docs:** https://coolify.io/docs
+- **Nginx Docs:** https://nginx.org/en/docs/
+- **Supabase Docs:** https://supabase.com/docs
+- **Repository:** https://github.com/artur/absendo
+
+---
+
+**Last Updated:** 2025-11-14  
+**Coolify Version:** 4.x  
+**Docker Version:** 24.x+
